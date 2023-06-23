@@ -1,0 +1,30 @@
+import express from "express";
+
+class App {
+  private app;
+  private server;
+
+  constructor() {
+    this.app = express();
+    this.middlewares();
+    this.listen();
+  }
+
+  public getServer() {
+    return this.server;
+  }
+
+  private middlewares() {
+    this.app.use(express.json());
+  }
+
+  private listen() {
+    this.server = this.app.listen(3333, () => {
+      console.log("Server started on port 3333");
+    });
+  }
+}
+
+const app = new App().getServer();
+
+export default app;
