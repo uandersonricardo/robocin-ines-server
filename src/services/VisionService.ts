@@ -4,15 +4,15 @@ import zmq from "zeromq";
 import { match } from "../config/state";
 import proto from "../config/proto";
 import logModel from "../models/LogModel";
-import webSocket from "../websocket";
 import fileDirName from "../utils/fileDirName";
+import socketIo from "../socketio";
 
 class VisionService {
   private socket;
 
   constructor() {
-    this.socket = zmq.socket("sub");
-    this.bindEvents();
+    this.socket = new zmq.Subscriber();
+    this.receive();
   }
 
   public connect() {
@@ -25,51 +25,39 @@ class VisionService {
     console.log("Worker connected to vision");
   }
 
-  private bindEvents() {
-    this.socket.on("message", async (topic, msg) => {
+  private async receive() {
+    for await (const [topic, msg] of this.socket) {
       let log = {};
 
       if (topic.toString() === "vision") {
         const FrameProto = proto.lookupType("ines.vision.Frame");
         const frame = FrameProto.decode(msg).toJSON();
     
-        // webSocket.clients.forEach((client) => {
-        //   client.send(JSON.stringify(frame));
-        // });
-    
         log = {
+          matchId: match._id,
           type: "frame",
           data: frame
-        }
-    
-        console.dir(frame, { depth: null });
+        };
       } else if (topic.toString() === "field") {
         const FieldProto = proto.lookupType("ines.vision.Field");
         const field = FieldProto.decode(msg).toJSON();
-    
-        // wsServer.clients.forEach((client) => {
-        //   client.send(JSON.stringify(field));
-        // });
-    
+
         log = {
+          matchId: match._id,
           type: "field",
           data: field
         };
-    
-        console.dir(field, { depth: null });
       }
+    
+      socketIo.broadcast(log);
 
       if (!match) {
         return;
       }
 
-      await logModel.create({
-        matchId: match._id,
-        ...log
-      });
-  
+      await logModel.create(log);
       await match.updateOne({ lastPacketReceivedAt: Date.now() });
-    });
+    }
   }
 }
 

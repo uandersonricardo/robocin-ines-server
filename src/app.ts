@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 
 class App {
   private app;
@@ -16,6 +17,7 @@ class App {
 
   private middlewares() {
     this.app.use(express.json());
+    this.app.use(cors());
   }
 
   private listen() {
@@ -25,6 +27,6 @@ class App {
   }
 }
 
-const app = new App().getServer();
+const app = new App();
 
 export default app;

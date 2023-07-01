@@ -1,18 +1,18 @@
 import path from "path";
-import zmq from "zeromq";
+import { Subscriber } from "zeromq";
 
 import proto from "../config/proto";
 import logModel from "../models/LogModel";
 import { match } from "../config/state";
-import webSocket from "../websocket";
 import fileDirName from "../utils/fileDirName";
+import socketIo from "../socketio";
 
 class RefereeService {
   private socket;
 
   constructor() {
-    this.socket = zmq.socket("sub");
-    this.bindEvents();
+    this.socket = new Subscriber();
+    this.receive();
   }
 
   public connect() {
@@ -24,29 +24,25 @@ class RefereeService {
     console.log("Worker connected to referee");
   }
 
-  private bindEvents() {
-    this.socket.on("message", async (topic, msg) => {
+  private async receive() {
+    for await (const [topic, msg] of this.socket) {
       const StatusProto = proto.lookupType("ines.referee.Status");
       const status = StatusProto.decode(msg).toJSON();
+      const log = {
+        matchId: match._id,
+        type: "status",
+        data: status
+      };
   
-      // webSocket.clients.forEach((client) => {
-      //   client.send(JSON.stringify(status));
-      // });
+      socketIo.broadcast(log);
 
       if (!match) {
         return;
       }
-  
-      await logModel.create({
-        matchId: match._id,
-        type: "status",
-        data: status
-      });
-  
-      console.dir(status, { depth: null });
       
+      await logModel.create(log);
       await match.updateOne({ lastPacketReceivedAt: Date.now() });
-    });
+    };
   }
 }
 
