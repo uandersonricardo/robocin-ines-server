@@ -32,6 +32,7 @@ class VisionService {
         matchId: match._id,
         type: "frame",
         data: frame,
+        createdAt: new Date().toISOString(),
       };
 
       socketIo.broadcast(log);

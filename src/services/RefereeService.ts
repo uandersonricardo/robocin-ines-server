@@ -34,6 +34,7 @@ class RefereeService {
         matchId: match._id,
         type: "referee",
         data: referee,
+        createdAt: new Date().toISOString(),
       };
 
       socketIo.broadcast(log);
