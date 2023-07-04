@@ -19,36 +19,21 @@ class VisionService {
     const { __dirname } = fileDirName(import.meta.url);
     const location = path.join(__dirname, "../../../ipc-test/vision.ipc");
     this.socket.connect(`ipc://${location}`);
-    this.socket.subscribe("vision");
-    this.socket.subscribe("field");
+    this.socket.subscribe("frame");
 
     console.log("Worker connected to vision");
   }
 
   private async receive() {
     for await (const [topic, msg] of this.socket) {
-      let log = {};
+      const FrameProto = proto.lookupType("robocin.pb.ssl.vision.Frame");
+      const frame = FrameProto.decode(msg).toJSON();
+      const log = {
+        matchId: match._id,
+        type: "frame",
+        data: frame,
+      };
 
-      if (topic.toString() === "vision") {
-        const FrameProto = proto.lookupType("ines.vision.Frame");
-        const frame = FrameProto.decode(msg).toJSON();
-    
-        log = {
-          matchId: match._id,
-          type: "frame",
-          data: frame
-        };
-      } else if (topic.toString() === "field") {
-        const FieldProto = proto.lookupType("ines.vision.Field");
-        const field = FieldProto.decode(msg).toJSON();
-
-        log = {
-          matchId: match._id,
-          type: "field",
-          data: field
-        };
-      }
-    
       socketIo.broadcast(log);
 
       if (!match) {

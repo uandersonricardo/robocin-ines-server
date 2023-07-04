@@ -1,0 +1,8 @@
+syntax = "proto2";
+
+package robocin.pb.ssl.third_party.detection;
+
+message SSL_WrapperPacket {
+  optional SSL_DetectionFrame detection = 1;
+  optional SSL_GeometryData geometry = 2;
+}

@@ -19,30 +19,32 @@ class RefereeService {
     const { __dirname } = fileDirName(import.meta.url);
     const location = path.join(__dirname, "../../../ipc-test/referee.ipc");
     this.socket.connect(`ipc://${location}`);
-    this.socket.subscribe("status");
+    this.socket.subscribe("referee");
 
     console.log("Worker connected to referee");
   }
 
   private async receive() {
     for await (const [topic, msg] of this.socket) {
-      const StatusProto = proto.lookupType("ines.referee.Status");
-      const status = StatusProto.decode(msg).toJSON();
+      const RefereeProto = proto.lookupType(
+        "robocin.pb.ssl.third_party.game_controller.Referee"
+      );
+      const referee = RefereeProto.decode(msg).toJSON();
       const log = {
         matchId: match._id,
-        type: "status",
-        data: status
+        type: "referee",
+        data: referee,
       };
-  
+
       socketIo.broadcast(log);
 
       if (!match) {
         return;
       }
-      
+
       await logModel.create(log);
       await match.updateOne({ lastPacketReceivedAt: Date.now() });
-    };
+    }
   }
 }
 
